@@ -1,0 +1,1 @@
+pytest --cov=minesweeper -rP --cov-report=term --cov-report=html
