@@ -32,7 +32,7 @@ def _setup(_field) -> Setup:
     w = len(_field[0])
     h = len(_field)
     data = list_to_array(_field)
-    game = Minesweeper(w, h, data.count(bytes([9])))
+    game = Minesweeper(w, h, sum(1 if i == 9 else 0 for fp in _field for i in fp))
     game._field._data = data
     field = game._field
     return Setup(game=game, field=field)
@@ -120,3 +120,12 @@ async def test_await():
         assert g.open(5, 5).win
     else:
         assert g.open(0, 0).win
+
+
+def test_oob_throws():
+    m = Minesweeper(8, 8, 10)
+    m._field.generate()
+    with pytest.raises(IndexError):
+        m.open(10, 10)
+    with pytest.raises(IndexError):
+        m.flag(10, 10)

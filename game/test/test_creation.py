@@ -17,7 +17,7 @@ def test_create_field():
 @pytest.mark.anyio
 @pytest.mark.parametrize('width,height,mines', [
     (10, 10, 8),
-    (10, 10, 90),
+    (10, 10, 81),
     (100, 100, 0.27),
 ])
 async def test_generate_field(width, height, mines):
@@ -103,7 +103,7 @@ def test_all_opened():
 
 
 def test_flagged():
-    f = Field(2, 2, 1)
+    f = Field(4, 4, 9)
     f.generate()
     assert next(f.flag(1, 1)).flag
     assert len(list(f.open(1, 1))) == 0
@@ -135,3 +135,37 @@ def test_set_oob(x, y):
     with pytest.raises(IndexError) as e:
         f[x, y] = 0
     assert str(e.value)[str(e.value).rfind('('):] == f'({x},{y})'
+
+
+@pytest.mark.parametrize('x,y', [
+    (None, 6),
+    (7, None),
+    (-1, 6),
+    (6, -2),
+    (-1, None),
+    (None, -2),
+    (-1, -1)
+])
+def test_low_dimensions(x, y):
+    with pytest.raises(ValueError) as e:
+        Field(x, y, 10)
+    assert str(e.value) == 'Bad dimensions'
+
+
+def test_bad_mines():
+    mmax = 9 * 9
+    with pytest.raises(ValueError) as e:
+        Field(10, 10, mmax + 1)
+    assert str(e.value)[str(e.value).rindex(','):] == f', max: {mmax} got: {mmax + 1}'
+    with pytest.raises(ValueError) as e:
+        Field(10, 10, 0)
+    assert str(e.value) == 'Too few mines'
+
+
+def test_min_mines():
+    with pytest.raises(ValueError) as e:
+        Field(3, 3, 10)
+    assert str(e.value) == 'Bad dimensions'
+    with pytest.raises(ValueError) as e:
+        Field(4, 4, 10)
+    assert str(e.value) != 'Bad dimensions'

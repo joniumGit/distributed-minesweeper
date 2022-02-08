@@ -157,6 +157,12 @@ class Field:
     __slots__ = ['width', 'height', 'mines', '_seed', '_task', '_data', 'shuffle']
 
     def __init__(self, width: int, height: int, mines: int, seed: bytes = None):
+        if width is None or height is None or width < 4 or height < 4:
+            raise ValueError('Bad dimensions')
+        if mines > (width - 1) * (height - 1):
+            raise ValueError(f'Too many mines, max: {(width - 1) * (height - 1)} got: {mines}')
+        elif mines < 1:
+            raise ValueError(f'Too few mines')
         self.width = width
         self.height = height
         self.mines = mines
