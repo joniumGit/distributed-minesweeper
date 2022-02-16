@@ -14,15 +14,15 @@ def test_create_field():
     assert f._data is None
 
 
-@pytest.mark.anyio
 @pytest.mark.parametrize('width,height,mines', [
     (10, 10, 8),
     (10, 10, 81),
     (100, 100, 0.27),
 ])
-async def test_generate_field(width, height, mines):
+def test_generate_field(width, height, mines):
     f = Field(width, height, int(width * height * mines) if not isinstance(mines, int) else mines)
-    await f
+    f.generate()
+
     assert f._data is not None
     assert f._task is None
     assert len(f._data) == f.width * f.height

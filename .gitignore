@@ -2,3 +2,11 @@
 .DS_Store
 *.iml
 .vscode
+
+# Game and Server
+venv
+*.egg-info/
+.pytest_cache
+__pycache__
+.coverage*
+htmlcov

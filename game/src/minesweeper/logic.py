@@ -123,10 +123,15 @@ class Square:
 
     @staticmethod
     def from_triple(x: int, y: int, value: int):
-        if value & MINE:
-            return Square(x=x, y=y, open=True, mine=True)
+        if value & OPEN:
+            if value & MINE:
+                return Square(x=x, y=y, open=True, mine=True)
+            else:
+                return Square(x=x, y=y, open=True, value=value & TAIL)
+        elif value & FLAG:
+            return Square(x=x, y=y, flag=True)
         else:
-            return Square(x=x, y=y, open=True, value=value & TAIL)
+            return Square(x=x, y=y)
 
 
 class Field:
@@ -176,7 +181,7 @@ class Field:
 
     def flag(self, x: int, y: int) -> Generator[Square, None, None]:
         """
-        Flag a tile on the field generating change events
+        Flag a tile on the field yielding a result if the field changed
         """
         value = self[x, y]
         if value & OPEN == 0:
@@ -189,16 +194,31 @@ class Field:
 
     def open(self, x: int, y: int) -> Generator[Square, None, None]:
         """
-        Open a square on the field generating change events
+        Open a square on the field yielding squares that changed as a result
         """
         from itertools import starmap
         value = self[x, y]
         if value & (FLAG | OPEN) == 0:
             yield from starmap(Square.from_triple, self._flood(x, y))
 
+    def check(self, x: int, y: int) -> Square:
+        """
+        Check without opening
+        """
+        return Square.from_triple(x, y, self[x, y])
+
+    def __iter__(self) -> Generator[Square, None, None]:
+        """
+        Iterate over all open squares
+        """
+        for x, y in iter_2d(self.width, self.height):
+            v = self[x, y]
+            if v & (OPEN | FLAG):
+                yield Square.from_triple(x, y, v)
+
     def __getitem__(self, point: Tuple[int, int]) -> int:
         """
-        Get a value from the field generating change events
+        Get a value from the field
         """
         if point[0] is not None and point[1] is not None and 0 <= point[0] < self.width and 0 <= point[1] < self.height:
             return self._data[point[0] * self.height + point[1]]
@@ -213,16 +233,6 @@ class Field:
             self._data[point[0] * self.height + point[1]] = value
         else:
             raise IndexError(f'Out of field ({point[0]},{point[1]})')
-
-    def __await__(self):
-        """
-        Wait until generation is ready
-        """
-        if self._task is None:
-            import asyncio as aio
-            self._task = aio.create_task(self._generate_async(), name='Field Initialization Task')
-        yield from self._task.__await__()
-        self._task = None
 
     def __bool__(self):
         """
@@ -311,20 +321,16 @@ class Field:
 
         self._data = data
 
-    async def _generate_async(self):
-        self.generate()
-
     def _flood(self, x: int, y: int):
         from collections import deque
 
         q = deque()
         width = self.width
         height = self.height
-        remove_flag = ~FLAG
         data = self._data
 
         value = data[x * height + y]
-        if value & (MINE | TAIL | OPEN):
+        if value & (MINE | TAIL | OPEN | FLAG):
             value = value | OPEN
             data[x * height + y] = value
             yield x, y, value
@@ -333,19 +339,27 @@ class Field:
             while q:
                 x, y = q.popleft()
                 value = data[x * height + y]
-                if value & OPEN:
+
+                if value & OPEN:  # Skip open
                     continue
-                value = (value | OPEN) & remove_flag
-                data[x * height + y] = value
-                for dx, dy in (n8(x, y) if check_n8_safe(x, y, width, height) else n8_safer(x, y, width, height)):
-                    value = data[dx * height + dy]
-                    if value & (MINE | OPEN) == 0:
-                        if value & TAIL:
-                            value = (value | OPEN) & remove_flag
-                            data[dx * height + dy] = value
-                            yield dx, dy, value
+
+                value = (value | OPEN) ^ FLAG  # Open and remove flag
+                data[x * height + y] = value  # Commit
+
+                for dx, dy in (
+                        n8(x, y)
+                        if check_n8_safe(x, y, width, height)
+                        else n8_safer(x, y, width, height)
+                ):
+                    dv = data[dx * height + dy]
+                    if dv & (MINE | OPEN) == 0:  # If not mine or open
+                        if dv & TAIL:  # Wouldn't continue
+                            dv = (dv | OPEN) ^ FLAG
+                            data[dx * height + dy] = dv
+                            yield dx, dy, dv
                         else:
-                            q.append((dx, dy))
+                            q.appendleft((dx, dy))
+
                 yield x, y, value
 
 

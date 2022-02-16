@@ -36,3 +36,18 @@ def array_to_list(data, width, height):
         for y in range(0, height):
             new_data[y][x] = to_str(data[x * height + y])
     return new_data
+
+
+@pytest.fixture
+def funcs():
+    class Funcs:
+
+        @property
+        def array_to_list(self):
+            return array_to_list
+
+        @property
+        def list_to_array(self):
+            return list_to_array
+
+    yield Funcs()
