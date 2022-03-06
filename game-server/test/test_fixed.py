@@ -54,7 +54,7 @@ def test_field_setup(client, state):
     assert game.check(2, 3).flag
     assert game.check(4, 1).flag
 
-    r = client.post('/check', json={'x': 2, 'y': 3})
+    r = client.get('/check', params={'x': 2, 'y': 3})
     assert r.status_code == 200, f'{r.status_code}-{r.text}'
     assert r.json()['flag'], f'{r.text}-{r.headers}'
 
@@ -69,8 +69,9 @@ def hit_mine(client):
     assert r.status_code == 200, r.content
     d = r.json()
     try:
-        assert len(d['items']) == 1, d
+        assert len(d['items']) == 2, d
         assert d['items'][0]['mine'], d
+        assert d['items'][1]['mine'], d
         assert d['status'] == 'lose', d
     except KeyError as e:
         assert False, str(e) + '-' + str(d)
@@ -88,18 +89,18 @@ def test_mine_lose(client, path):
 
 def test_mine_check_ok(client):
     hit_mine(client)
-    r = client.post('/check', json=dict(x=0, y=0))
+    r = client.get('/check', params=dict(x=0, y=0))
     assert r.status_code == 200
     assert r.json()['mine']
     assert r.json()['open']
 
 
 def test_mine_reload_ok(client):
-    hit_mine(client)
+    client.post('/open', json={'x': 0, 'y': 0})
     r = client.get('/reload')
     assert r.status_code == 200
     assert r.json()['status'] == 'lose'
-    assert len(r.json()['items']) == 3  # 2 Flags and a mine
+    assert len(r.json()['items']) == 4  # 2 Flags and a mine
     o = r.json()['items'][0]
     assert o['mine']
     assert o['open']
@@ -107,3 +108,28 @@ def test_mine_reload_ok(client):
     assert o['flag']
     o = r.json()['items'][2]
     assert o['flag']
+
+
+def test_open_twice(client):
+    r = client.post('/open', json={'x': 1, 'y': 0})
+    assert r.status_code == 200
+    r = client.post('/open', json={'x': 1, 'y': 0})
+    assert r.status_code == 304
+
+
+def test_gone(client):
+    hit_mine(client)
+    r = client.get('/')
+    assert r.status_code == 410
+    r = client.post('/flag', json={'x': 0, 'y': 0})
+    assert r.status_code == 410
+    r = client.delete('/flag', json={'x': 0, 'y': 0})
+    assert r.status_code == 410
+    r = client.post('/open', json={'x': 0, 'y': 0})
+    assert r.status_code == 410
+    r = client.post('/start', json={'width': 10, 'height': 10, 'mines': 16})
+    assert r.status_code == 410
+    r = client.get('/check', params={'x': 0, 'y': 0})
+    assert r.status_code == 200
+    r = client.get('/reload')
+    assert r.status_code == 200

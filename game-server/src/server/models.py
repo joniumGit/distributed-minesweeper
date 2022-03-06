@@ -1,8 +1,7 @@
 from typing import List, Optional, Iterable
 
-from pydantic import BaseModel, conint, Field
-
 from minesweeper.game import Minesweeper, Status
+from pydantic import BaseModel, conint, Field, root_validator
 
 
 class Square(BaseModel):
@@ -23,6 +22,15 @@ class Start(BaseModel):
     width: conint(gt=0)
     height: conint(gt=0)
     mines: conint(gt=0)
+
+    @root_validator(pre=False, skip_on_failure=True)
+    def validate_combination(cls, value):
+        from minesweeper.logic import check_dims
+        width = value.get('width')
+        height = value.get('height')
+        mines = value.get('mines')
+        check_dims(width, height, mines)
+        return value
 
 
 class Result(BaseModel):
@@ -58,6 +66,9 @@ class Move(BaseModel):
             class_validators=None
         )
         cls.__schema_cache__.clear()
+
+    def to_url(self):
+        return f'x={self.x}&y={self.y}'
 
 
 __all__ = [

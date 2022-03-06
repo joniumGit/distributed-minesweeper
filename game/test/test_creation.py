@@ -1,6 +1,5 @@
-import pytest
-
 import minesweeper.logic
+import pytest
 from minesweeper.logic import Field
 
 
@@ -149,7 +148,7 @@ def test_set_oob(x, y):
 def test_low_dimensions(x, y):
     with pytest.raises(ValueError) as e:
         Field(x, y, 10)
-    assert str(e.value) == 'Bad dimensions'
+    assert str(e.value).startswith('Bad dimensions')
 
 
 def test_bad_mines():
@@ -159,13 +158,43 @@ def test_bad_mines():
     assert str(e.value)[str(e.value).rindex(','):] == f', max: {mmax} got: {mmax + 1}'
     with pytest.raises(ValueError) as e:
         Field(10, 10, 0)
-    assert str(e.value) == 'Too few mines'
+    assert str(e.value).startswith('Too few mines')
 
 
 def test_min_mines():
     with pytest.raises(ValueError) as e:
         Field(3, 3, 10)
-    assert str(e.value) == 'Bad dimensions'
+    assert str(e.value).startswith('Bad dimensions')
     with pytest.raises(ValueError) as e:
         Field(4, 4, 10)
     assert str(e.value) != 'Bad dimensions'
+
+
+def test_bad_dims():
+    from minesweeper.logic import check_dims
+    with pytest.raises(ValueError) as e:
+        check_dims(3, 3, 10)
+    assert str(e.value) == 'Bad dimensions, min: 4,4 got: 3,3'
+
+
+def test_status():
+    from minesweeper.game import Status
+    assert Status.ONGOING.__str__() == Status.ONGOING.__repr__()
+    assert Status.ONGOING is Status.ONGOING
+
+
+def test_mines():
+    f = Field(4, 4, 8)
+    f.generate()
+    assert len(list(f.iter_mines())) == 8
+
+
+def test_mines_not_open():
+    from minesweeper.logic import iter_2d, MINE, OPEN
+    f = Field(4, 4, 8)
+    f.generate()
+    for x, y in iter_2d(4, 4):
+        if f[x, y] & MINE:
+            f[x, y] |= OPEN
+            break
+    assert len(list(f.iter_mines())) == 7

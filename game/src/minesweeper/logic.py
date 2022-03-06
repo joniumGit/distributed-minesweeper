@@ -7,9 +7,20 @@ OPEN = 0x80
 TAIL = 0x0f
 
 
+def check_dims(width: int, height: int, mines: int):
+    """Checks allowed field dimensions
+    """
+    if width is None or height is None or width < 4 or height < 4:
+        raise ValueError(f'Bad dimensions, min: 4,4 got: {width},{height}')
+    if mines > (width - 1) * (height - 1):
+        raise ValueError(f'Too many mines, max: {(width - 1) * (height - 1)} got: {mines}')
+    elif mines < 1:
+        raise ValueError(f'Too few mines')
+
+
 def iter_edges(width: int, height: int):
     """
-    Iterate trhough edges
+    Iterate through edges
 
     0 6 8 3
     1     4
@@ -162,12 +173,7 @@ class Field:
     __slots__ = ['width', 'height', 'mines', '_seed', '_task', '_data', 'shuffle']
 
     def __init__(self, width: int, height: int, mines: int, seed: bytes = None):
-        if width is None or height is None or width < 4 or height < 4:
-            raise ValueError('Bad dimensions')
-        if mines > (width - 1) * (height - 1):
-            raise ValueError(f'Too many mines, max: {(width - 1) * (height - 1)} got: {mines}')
-        elif mines < 1:
-            raise ValueError(f'Too few mines')
+        check_dims(width, height, mines)
         self.width = width
         self.height = height
         self.mines = mines
@@ -206,6 +212,15 @@ class Field:
         Check without opening
         """
         return Square.from_triple(x, y, self[x, y])
+
+    def iter_mines(self):
+        """
+        Iterate over all mines that are not open
+        """
+        for x, y in iter_2d(self.width, self.height):
+            v = self[x, y]
+            if v & MINE and v & OPEN == 0:
+                yield Square(x=x, y=y, mine=True)
 
     def __iter__(self) -> Generator[Square, None, None]:
         """
@@ -363,4 +378,4 @@ class Field:
                 yield x, y, value
 
 
-__all__ = ['Field', 'Square']
+__all__ = ['Field', 'Square', 'check_dims']

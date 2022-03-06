@@ -54,6 +54,7 @@ class Minesweeper:
             square = squares[0]
             if square.mine:
                 self._status = Status.LOSE
+                squares.extend(self._field.iter_mines())
                 return Move(status=self._status, items=squares)
             else:
                 return Move(items=squares)
@@ -65,6 +66,8 @@ class Minesweeper:
 
     def __iter__(self) -> Generator[Square, None, None]:
         yield from self._field
+        if self.status is not Status.ONGOING:
+            yield from self._field.iter_mines()
 
     def check(self, x: int, y: int) -> Square:
         return self._field.check(x, y)

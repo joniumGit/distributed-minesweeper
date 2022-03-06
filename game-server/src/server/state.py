@@ -4,15 +4,27 @@ from threading import RLock
 from typing import Optional
 
 from fastapi import HTTPException, status
-
 from minesweeper.game import Minesweeper, Status
+
 from .models import Move, Square, Start
+
+
+def _iter_game(game: Minesweeper):
+    from dataclasses import asdict
+    separator = ','.encode('utf-8')
+    yield '{"items":['.encode('utf-8')
+    for idx, square in enumerate(game):
+        if idx != 0:
+            yield separator
+        yield Square.construct(Square.__fields_set__, **asdict(square)).json(exclude_none=True).encode('utf-8')
+    yield f'],"status":"{game.status}"'.encode('utf-8')
+    yield '}'.encode('utf-8')
 
 
 class State:
     _game: Optional[Minesweeper]
     initialized = False
-    _LOG = logging.getLogger('uvicorn.access')
+    _LOG = logging.getLogger('uvicorn.error')
 
     _start: float = 0
     _stop_init: float = 0
@@ -27,7 +39,9 @@ class State:
         self._game = None
         self._game_done = False
 
-    def __call__(self):
+    def __call__(self):  # pragma: nocover
+        """For FastAPI compatibility
+        """
         return self
 
     def _log_init_done(self):
@@ -93,15 +107,12 @@ class State:
         if self._game is None:
             with self._lock:
                 if self._game is None:
-                    try:
-                        self._start = time.time()
-                        self._game = Minesweeper(start.width, start.height, start.mines)  # This can throw
-                        Move.adapt(self._game)
-                        self._start_init_task()
-                        self.log.info('Initialized a game')
-                        return  # Return here
-                    except ValueError as e:
-                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.args[0])
+                    self._start = time.time()
+                    self._game = Minesweeper(start.width, start.height, start.mines)  # Validated so won't throw
+                    Move.adapt(self._game)
+                    self._start_init_task()
+                    self.log.info('Initialized a game')
+                    return  # Return here
         raise HTTPException(status_code=status.HTTP_410_GONE, detail='Already Started')
 
     def all(self):
@@ -109,15 +120,7 @@ class State:
         Iterate all open and flagged squares
         """
         self._started()
-        from dataclasses import asdict
-        separator = ','.encode('utf-8')
-        yield '{"items":['.encode('utf-8')
-        for idx, square in enumerate(self._game):
-            if idx != 0:
-                yield separator
-            yield Square.construct(Square.__fields_set__, **asdict(square)).json(exclude_none=True).encode('utf-8')
-        yield f'],"status":"{self._game.status}"'.encode('utf-8')
-        yield '}'.encode('utf-8')
+        return _iter_game(self._game)
 
     def flag(self, x: int, y: int, set_flag: bool) -> int:
         """
@@ -128,7 +131,7 @@ class State:
             if (set_flag and not s.flag) or (not set_flag and s.flag):
                 m = self._game.flag(x, y)
                 if len(m.items) != 0:
-                    return 201
+                    return 201 if set_flag else 204
             return 304
 
     def check(self, x: int, y: int):

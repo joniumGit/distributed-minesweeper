@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 import pytest
-
 from minesweeper import Minesweeper
 from minesweeper.logic import iter_2d, OPEN, Field, FLAG
 
@@ -111,7 +110,7 @@ def test_mine(setup2: Setup):
     game = setup2.game
     m = game.open(3, 0)
     assert m.status == 'lose'
-    assert len(m.items) == 1
+    assert len(m.items) == 3  # All mines
     assert m.items[0].mine
     assert m.items[0].open
 
@@ -201,3 +200,23 @@ def test_reg_flood_return_order(setup: Setup):
         assert got.x == expected[0], out
         assert got.y == expected[1], out
         assert got.value == expected[2], out
+
+
+def test_full_iter(setup2: Setup, funcs):
+    """
+    Show everything on win
+    """
+    game = setup2.game
+    game.open(2, 2)
+    assert len(list(game)) == game.width * game.height
+
+
+def test_iter_on_mine(setup2: Setup, funcs):
+    """
+    Show only mines and opened squares + flags
+    """
+    game = setup2.game
+    game.open(2, 0)
+    game.flag(2, 1)
+    game.open(3, 0)
+    assert len(list(game)) == game.mines + 1 + 1

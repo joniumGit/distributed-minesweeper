@@ -1,2 +1,1 @@
-pip install -r ./game-server/requirements.txt
-pip install -e ./game -e ./game-server
+pip install --upgrade -e ./game -e ./game-server -r requirements-dev.txt
