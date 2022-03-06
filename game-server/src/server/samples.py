@@ -234,6 +234,11 @@ RELOAD_WIN = {
             "y": 4,
             "open": True,
             "value": 0
+        },
+        {
+            "x": 1,
+            "y": 0,
+            "mine": True
         }
     ],
     "status": "win"
@@ -244,6 +249,11 @@ RELOAD_LOSE = {
             "x": 0,
             "y": 0,
             "open": True,
+            "mine": True
+        },
+        {
+            "x": 2,
+            "y": 2,
             "mine": True
         }
     ],

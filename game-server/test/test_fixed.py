@@ -5,16 +5,16 @@ import pytest
 def initialized(state):
     print('Fixed Setup Invoked')
     from minesweeper.game import Minesweeper
-    from minesweeper.logic import Field, MINE, FLAG, TAIL
+    from minesweeper.logic import Field, MINE, FLAG, TAIL, OPEN
 
     field = Field(5, 6, 2)
     game = Minesweeper(5, 6, 2)
     game._field = field
 
-    field._data = bytearray([0 for _ in range(0, 8 ** 2)])
+    field._data = bytearray([0 for _ in range(0, 5 * 6)])
 
-    # X 1 1 0 0
-    # 1 2 1 0 F
+    # X 1 0 0 0
+    # 2 2 1 0 F
     # 1 X 1 0 0
     # 1 1 F 0 0
     # 0 0 0 0 0
@@ -38,10 +38,19 @@ def initialized(state):
 
     for i in range(0, 6):
         for j in range(0, 5):
-            print(field[j, i] & TAIL, end='')
+            v = field[j, i]
+            print(v & TAIL if v & MINE == 0 else 'x', end='')
         print()
     state._game = game
     state.initialized = True
+
+    yield
+
+    for i in range(0, 6):
+        for j in range(0, 5):
+            v = field[j, i]
+            print(f"{bool(v & OPEN):d}" if v & MINE == 0 else 'x', end='')
+        print()
 
 
 def test_field_setup(client, state):
@@ -133,3 +142,19 @@ def test_gone(client):
     assert r.status_code == 200
     r = client.get('/reload')
     assert r.status_code == 200
+
+
+def test_win(client, state):
+    # X 1 0 0 0
+    # 2 2 1 0 F
+    # 1 X 1 0 0
+    # 1 1 F 0 0
+    # 0 0 0 0 0
+    # 0 0 0 0 0
+    client.post('/open', json={'x': 4, 'y': 0})
+    client.post('/open', json={'x': 0, 'y': 1})
+    r = client.post('/open', json={'x': 0, 'y': 2})
+    assert r.status_code == 200
+    assert r.json()['status'] == 'win'
+    assert len(r.json()['items']) == 3
+    assert len(client.get('/reload').json()['items']) == 30

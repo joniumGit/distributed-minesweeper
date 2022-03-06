@@ -103,7 +103,7 @@ def test_flood_8_and_win(setup2: Setup, funcs):
         setup2.field.width,
         setup2.field.height
     ))
-    assert len(m.items) == 17
+    assert len(m.items) == 20  # Full field
 
 
 def test_mine(setup2: Setup):
@@ -220,3 +220,21 @@ def test_iter_on_mine(setup2: Setup, funcs):
     game.flag(2, 1)
     game.open(3, 0)
     assert len(list(game)) == game.mines + 1 + 1
+
+
+def test_return_mines_on_win(setup2: Setup, funcs):
+    """
+    Show everything on win
+    """
+    game = setup2.game
+    m = game.open(2, 2)
+    assert len(list(m.items)) == game.width * game.height
+
+
+def test_return_mines_on_lose(setup2: Setup, funcs):
+    """
+    Show everything on win
+    """
+    game = setup2.game
+    m = game.open(3, 0)
+    assert len(list(m.items)) == game.mines

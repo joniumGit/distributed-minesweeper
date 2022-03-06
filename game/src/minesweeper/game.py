@@ -49,6 +49,7 @@ class Minesweeper:
         squares = list(self._field.open(x, y))
         if self._field:
             self._status = Status.WIN
+            squares.extend(self._field.iter_mines())
             return Move(status=self._status, items=squares)
         elif len(squares) == 1:
             square = squares[0]
