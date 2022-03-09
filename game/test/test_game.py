@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import pytest
 from minesweeper import Minesweeper
+from minesweeper.game import Status
 from minesweeper.logic import iter_2d, OPEN, Field, FLAG
 
 FIELD = [
@@ -32,6 +33,7 @@ def _setup(_field, funcs) -> Setup:
     data = funcs.list_to_array(_field)
     game = Minesweeper(w, h, sum(1 if i == 9 else 0 for fp in _field for i in fp))
     game._field._data = data
+    game._status = Status.ONGOING
     field = game._field
     return Setup(game=game, field=field)
 
@@ -123,7 +125,7 @@ def test_initialize():
 
 def test_oob_throws():
     m = Minesweeper(8, 8, 10)
-    m._field.generate()
+    m.initialize()
     with pytest.raises(IndexError):
         m.open(10, 10)
     with pytest.raises(IndexError):
@@ -195,7 +197,7 @@ def test_reg_flood_return_order(setup: Setup):
         (1, 1, 1), (0, 1, 1), (0, 0, 0), (2, 1, 1), (1, 0, 0), (2, 0, 0), (3, 0, 0), (2, 2, 2), (3, 2, 1), (3, 1, 0)
     ]
     for idx, expected, got in zip(range(0, len(order)), order, m.items):
-        out = f"[{idx}] Expected: {expected}, Got: ({got.x}, {got.y}, {got.value})"
+        out = f'[{idx}] Expected: {expected}, Got: ({got.x}, {got.y}, {got.value})'
         assert got.open, out
         assert got.x == expected[0], out
         assert got.y == expected[1], out
@@ -238,3 +240,28 @@ def test_return_mines_on_lose(setup2: Setup, funcs):
     game = setup2.game
     m = game.open(3, 0)
     assert len(list(m.items)) == game.mines
+
+
+def test_illegal_state():
+    game = Minesweeper(10, 10, 10)
+    with pytest.raises(RuntimeError):
+        game.open(0, 0)
+    with pytest.raises(RuntimeError):
+        game.flag(0, 0)
+    with pytest.raises(RuntimeError):
+        game.check(0, 0)
+    with pytest.raises(RuntimeError):
+        for _ in game:
+            pass
+
+
+def test_illegal_state_after_win(setup):
+    game = setup.game
+    game.open(3, 3)
+    with pytest.raises(RuntimeError):
+        game.open(0, 0)
+    with pytest.raises(RuntimeError):
+        game.flag(0, 0)
+    game.check(0, 0)
+    for _ in game:
+        pass

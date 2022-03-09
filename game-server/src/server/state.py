@@ -22,52 +22,38 @@ def _iter_game(game: Minesweeper):
 
 
 class State:
+    _log: logging.Logger = logging.getLogger('uvicorn.error')
+    _lock: RLock
     _game: Optional[Minesweeper]
-    initialized = False
-    _LOG = logging.getLogger('uvicorn.error')
-
     _start: float = 0
     _stop_init: float = 0
     _stop_game: float = 0
 
     @property
     def log(self):
-        return State._LOG
+        return State._log
 
     def __init__(self):
         self._lock = RLock()
         self._game = None
-        self._game_done = False
 
     def __call__(self):  # pragma: nocover
         """For FastAPI compatibility
         """
         return self
 
-    def _log_init_done(self):
-        if self.log.isEnabledFor(logging.INFO):
-            self.log.info(
-                f'Game Initialization Finished, took: {round((self._stop_init - self._start) * 1000, 2):.2f} ms'
-            )
-
-    def _log_game_done(self):
-        if self.log.isEnabledFor(logging.INFO):
-            self.log.info(
-                f'Game Finished, took: {round(self._stop_init - self._start, 2):.2f} s'
-            )
-
     def _started(self):
         if self._game is None:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Game Not Started')
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Game Not Started')
 
     def _initialized(self):
         self._started()
-        if not self.initialized:
+        if self._game.status is Status.INITIALIZING:
             raise HTTPException(status_code=status.HTTP_202_ACCEPTED, detail='Initializing')
 
     def _done(self):
         self._initialized()
-        if self._game_done:
+        if self._game.status is not Status.ONGOING:
             raise HTTPException(status_code=status.HTTP_410_GONE, detail='Game Ended')
 
     def status(self):
@@ -90,10 +76,11 @@ class State:
         """
         self._game.initialize()
         with self._lock:
-            self.initialized = True
             self.__tread = None
         self._stop_init = time.time()
-        self._log_init_done()
+        self.log.info(
+            f'Game Initialization Finished, took: {round((self._stop_init - self._start) * 1000, 2):.2f} ms'
+        )
 
     def _start_init_task(self):
         import threading
@@ -119,7 +106,7 @@ class State:
         """
         Iterate all open and flagged squares
         """
-        self._started()
+        self._initialized()
         return _iter_game(self._game)
 
     def flag(self, x: int, y: int, set_flag: bool) -> int:
@@ -138,7 +125,7 @@ class State:
         """
         Check a square
         """
-        self._started()
+        self._initialized()
         return self._game.check(x, y)
 
     def open(self, x: int, y: int):
@@ -147,10 +134,11 @@ class State:
         """
         with self._lock:
             m = self.game.open(x, y)
-            if m.status is not None and m.status != Status.ONGOING:
-                self._game_done = True
+            if m.status is not None and m.status is not Status.ONGOING:
                 self._stop_game = time.time()
-                self._log_game_done()
+                self.log.info(
+                    f'Game Finished, took: {round(self._stop_game - self._start, 2):.2f} s'
+                )
             elif len(m.items) == 0:
                 return None
             return m

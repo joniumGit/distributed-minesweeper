@@ -1,24 +1,35 @@
-from fastapi import FastAPI, Depends, HTTPException, Body
+import os
+
+from fastapi import FastAPI, Depends, APIRouter
 from fastapi.responses import Response, JSONResponse, StreamingResponse
 from headers import LOCATION
+from pydantic import ValidationError
 
+from .auth import AuthScheme
 from .models import Start, Square, Result, Move
-from .samples import OPEN_SAMPLES, RELOAD_SAMPLES, START_SAMPLES, location, CHECK_SAMPLES
+from .samples import OPEN_SAMPLES, RELOAD_SAMPLES, location, CHECK_SAMPLES
 from .state import State
 
+TESTING = os.getenv("DS_TESTING", "False").lower() == "true"
 API_TAG = "API"
-app = FastAPI(default_response_class=Response, openapi_tags=[
-    {
-        "name": API_TAG,
-        "description": "Available API operations"
-    }
-])
+app = FastAPI(
+    default_response_class=Response,
+    openapi_tags=[
+        {
+            "name": API_TAG,
+            "description": "Available API operations"
+        }
+    ],
+    redoc_url=None,
+    docs_url="/docs" if TESTING else None,
+)
 game_state = State()
+auth = AuthScheme()
+api = APIRouter(tags=[API_TAG], dependencies=[Depends(auth)])
 
 
-@app.get(
+@api.get(
     "/",
-    tags=[API_TAG],
     status_code=200,
     responses={
         200: {
@@ -27,7 +38,7 @@ game_state = State()
         202: {
             "description": "Game server is performing initial setup and is ready later."
         },
-        403: {
+        404: {
             "description": "The game has not yet started."
         },
         410: {
@@ -36,15 +47,11 @@ game_state = State()
     }
 )
 def status(state: State = Depends(game_state)):
-    try:
-        state.status()
-    except HTTPException as e:
-        return Response(status_code=e.status_code)
+    state.status()
 
 
-@app.post(
+@api.post(
     "/start",
-    tags=[API_TAG],
     name="start",
     status_code=201,
     responses={
@@ -59,14 +66,13 @@ def status(state: State = Depends(game_state)):
         }
     }
 )
-def start_game(start: Start = Body(..., examples=START_SAMPLES), state: State = Depends(game_state)):
+def start_game(start: Start = Depends(), state: State = Depends(game_state)):
     state.initialize(start)
     return Response(status_code=201, headers=dict(location=app.url_path_for('status')))
 
 
-@app.post(
+@api.post(
     "/open",
-    tags=[API_TAG],
     name="move",
     response_class=JSONResponse,
     status_code=200,
@@ -82,17 +88,19 @@ def start_game(start: Start = Body(..., examples=START_SAMPLES), state: State = 
         },
         422: {
             "description": "Invalid model"
-        }
+        },
+        404: {
+            "description": "The game has not yet started."
+        },
     }
 )
-def make_move(move: Move = Body(..., example=Move(x=0, y=0).json()), state: State = Depends(game_state)):
+def make_move(move: Move = Depends(), state: State = Depends(game_state)):
     m = state.open(move.x, move.y)
     return Response(status_code=304) if m is None else m
 
 
-@app.post(
+@api.post(
     "/flag",
-    tags=[API_TAG],
     status_code=201,
     responses={
         201: {
@@ -104,18 +112,20 @@ def make_move(move: Move = Body(..., example=Move(x=0, y=0).json()), state: Stat
         },
         422: {
             "description": "Invalid model"
-        }
+        },
+        404: {
+            "description": "The game has not yet started."
+        },
     }
 )
-def add_flag(move: Move, state: State = Depends(game_state)):
+def add_flag(move: Move = Depends(), state: State = Depends(game_state)):
     return Response(status_code=state.flag(move.x, move.y, True), headers={
         LOCATION: f'{app.url_path_for("check")}?{move.to_url()}'
     })
 
 
-@app.delete(
+@api.delete(
     "/flag",
-    tags=[API_TAG],
     status_code=204,
     responses={
         204: {
@@ -127,18 +137,20 @@ def add_flag(move: Move, state: State = Depends(game_state)):
         },
         422: {
             "description": "Invalid model"
-        }
+        },
+        404: {
+            "description": "The game has not yet started."
+        },
     }
 )
-def remove_flag(move: Move, state: State = Depends(game_state)):
+def remove_flag(move: Move = Depends(), state: State = Depends(game_state)):
     return Response(status_code=state.flag(move.x, move.y, False), headers={
         LOCATION: f'{app.url_path_for("check")}?{move.to_url()}'
     })
 
 
-@app.get(
+@api.get(
     "/check",
-    tags=[API_TAG],
     name="check",
     status_code=200,
     response_model=Square,
@@ -151,16 +163,18 @@ def remove_flag(move: Move, state: State = Depends(game_state)):
         },
         422: {
             "description": "Invalid parameters"
-        }
+        },
+        404: {
+            "description": "The game has not yet started."
+        },
     }
 )
 def check_square(move: Move = Depends(), state: State = Depends(game_state)):
     return state.check(move.x, move.y)
 
 
-@app.get(
+@api.get(
     "/reload",
-    tags=[API_TAG],
     status_code=200,
     # response_model=Squares,
     response_class=StreamingResponse,
@@ -168,8 +182,23 @@ def check_square(move: Move = Depends(), state: State = Depends(game_state)):
         200: {
             "description": "Fetches the whole set of open squares on the field plus flags",
             "content": RELOAD_SAMPLES
-        }
+        },
+        404: {
+            "description": "The game has not yet started."
+        },
     }
 )
 async def reload(state: State = Depends(game_state)):
     return StreamingResponse(iter(state.all()), media_type="application/json")
+
+
+async def handle_validation(_, exc: ValidationError):
+    from fastapi.exception_handlers import request_validation_exception_handler
+    from fastapi.exceptions import RequestValidationError
+    from typing import cast
+
+    return await request_validation_exception_handler(_, cast(RequestValidationError, exc))
+
+
+app.add_exception_handler(ValidationError, handle_validation)
+app.include_router(api)

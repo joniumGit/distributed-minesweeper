@@ -4,12 +4,13 @@ import pytest
 @pytest.fixture(scope='function', autouse=True)
 def initialized(state):
     print('Fixed Setup Invoked')
-    from minesweeper.game import Minesweeper
+    from minesweeper.game import Minesweeper, Status
     from minesweeper.logic import Field, MINE, FLAG, TAIL, OPEN
 
     field = Field(5, 6, 2)
     game = Minesweeper(5, 6, 2)
     game._field = field
+    game._status = Status.ONGOING
 
     field._data = bytearray([0 for _ in range(0, 5 * 6)])
 
@@ -69,12 +70,12 @@ def test_field_setup(client, state):
 
 
 def test_start_throws(client):
-    r = client.post('/start', json=dict(width=8, height=8, mines=10))
+    r = client.post('/start', params=dict(width=8, height=8, mines=10))
     assert r.status_code == 410
 
 
 def hit_mine(client):
-    r = client.post('/open', json={'x': 0, 'y': 0})
+    r = client.post('/open', params={'x': 0, 'y': 0})
     assert r.status_code == 200, r.content
     d = r.json()
     try:
@@ -92,7 +93,7 @@ def hit_mine(client):
 ])
 def test_mine_lose(client, path):
     hit_mine(client)
-    r = client.post(path, json={'x': 0, 'y': 0})
+    r = client.post(path, params={'x': 0, 'y': 0})
     assert r.status_code == 410
 
 
@@ -105,7 +106,7 @@ def test_mine_check_ok(client):
 
 
 def test_mine_reload_ok(client):
-    client.post('/open', json={'x': 0, 'y': 0})
+    client.post('/open', params={'x': 0, 'y': 0})
     r = client.get('/reload')
     assert r.status_code == 200
     assert r.json()['status'] == 'lose'
@@ -120,9 +121,9 @@ def test_mine_reload_ok(client):
 
 
 def test_open_twice(client):
-    r = client.post('/open', json={'x': 1, 'y': 0})
+    r = client.post('/open', params={'x': 1, 'y': 0})
     assert r.status_code == 200
-    r = client.post('/open', json={'x': 1, 'y': 0})
+    r = client.post('/open', params={'x': 1, 'y': 0})
     assert r.status_code == 304
 
 
@@ -130,13 +131,13 @@ def test_gone(client):
     hit_mine(client)
     r = client.get('/')
     assert r.status_code == 410
-    r = client.post('/flag', json={'x': 0, 'y': 0})
+    r = client.post('/flag', params={'x': 0, 'y': 0})
     assert r.status_code == 410
-    r = client.delete('/flag', json={'x': 0, 'y': 0})
+    r = client.delete('/flag', params={'x': 0, 'y': 0})
     assert r.status_code == 410
-    r = client.post('/open', json={'x': 0, 'y': 0})
+    r = client.post('/open', params={'x': 0, 'y': 0})
     assert r.status_code == 410
-    r = client.post('/start', json={'width': 10, 'height': 10, 'mines': 16})
+    r = client.post('/start', params={'width': 10, 'height': 10, 'mines': 16})
     assert r.status_code == 410
     r = client.get('/check', params={'x': 0, 'y': 0})
     assert r.status_code == 200
@@ -151,9 +152,9 @@ def test_win(client, state):
     # 1 1 F 0 0
     # 0 0 0 0 0
     # 0 0 0 0 0
-    client.post('/open', json={'x': 4, 'y': 0})
-    client.post('/open', json={'x': 0, 'y': 1})
-    r = client.post('/open', json={'x': 0, 'y': 2})
+    client.post('/open', params={'x': 4, 'y': 0})
+    client.post('/open', params={'x': 0, 'y': 1})
+    r = client.post('/open', params={'x': 0, 'y': 2})
     assert r.status_code == 200
     assert r.json()['status'] == 'win'
     assert len(r.json()['items']) == 3
