@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_start_too_many_mines(client):
     r = client.post('/start', params={'width': 8, 'height': 8, 'mines': 95})
     assert r.status_code == 422
@@ -15,24 +18,49 @@ def test_start(client):
     assert r.status_code == 201
 
 
-def test_initializing(client):
-    cnt = 1000
-    cnt2 = 500
-    r = client.post('/start', params={'width': cnt, 'height': cnt2, 'mines': int(cnt * cnt2 * 0.6)})
-    assert r.status_code == 201, r.content
-    loc = r.headers['Location']
-    r = client.get(loc)
+def _initializing(client, path=None, method=None):
+    from server.models import MAX_HEIGHT, MAX_WIDTH
+    r = client.post('/start', params={
+        'width': MAX_WIDTH - 1,
+        'height': MAX_HEIGHT - 1,
+        'mines': int(MAX_WIDTH * MAX_HEIGHT * 0.6)
+    })
+    assert r.status_code == 201, f'Failed, got: {r.status_code}\n{r.content}'
+
+    if path is None:
+        path = r.headers['Location']
+
+    if method is None:
+        method = 'get'
+
+    r = getattr(client, method)(path)
     assert r.status_code == 202
+
     i = 0
-    while i < 200:  # Timeout at 2 secs
+    while i < 200:
         import time
-        time.sleep(0.01)
-        r = client.get(loc)
-        if r.status_code != 200:
-            i += 1
-        else:
+        r = getattr(client, method)(path)
+        if r.status_code != 202:
             break
-    assert i >= 0
+        i += 1
+        time.sleep(0.01)
+    assert i != 200
+
+
+def test_initializing(client):
+    _initializing(client)
+
+
+@pytest.mark.parametrize('p,method', [
+    ('/reload', 'get'),
+    ('/check?x=0&y=0', 'get'),
+    ('/open?x=0&y=0', 'post'),
+    ('/flag?x=0&y=0', 'post'),
+    ('/flag?x=0&y=0', 'delete'),
+    ('/', 'get'),
+])
+def test_initializing_endpoints(client, p, method):
+    _initializing(client, path=p, method=method)
 
 
 def test_status(client):

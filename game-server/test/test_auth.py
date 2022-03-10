@@ -1,17 +1,6 @@
 import pytest
 
 
-def load_auth(token_name, *_):
-    from os import environ
-    environ.pop(token_name, None)
-    try:
-        from server.auth import auth as should_throw
-        print(should_throw)
-    except KeyError:
-        exit(0)
-    exit(1)
-
-
 @pytest.fixture
 def r():
     from collections import namedtuple
@@ -26,29 +15,36 @@ def auth():
 
 
 @pytest.fixture
-def scheme(r):
+def scheme(r, run_async):
     from server.auth import AuthScheme
-    from asyncio import new_event_loop
     from fastapi import Request
     from typing import cast
 
-    def run_inside(header: str):
-        loop = new_event_loop()
-        try:
-            auth_scheme = AuthScheme()
-            return loop.run_until_complete(auth_scheme(cast(Request, r(header))))
-        finally:
-            loop.close()
-
-    yield run_inside
+    auth_scheme = AuthScheme()
+    yield lambda header: run_async(auth_scheme, cast(Request, r(header)))
 
 
-def test_import_no_token(token_name):
-    import multiprocessing as mp
-    p = mp.Process(target=load_auth, args=(token_name,))
-    p.start()
-    p.join()
-    assert p.exitcode == 0
+def test_import_no_token(token_name, token):
+    import server.auth.auth as should_throw
+    # Break everything
+    from os import environ
+    import sys
+    import importlib
+    environ.pop(token_name, None)
+
+    try:
+        with pytest.raises(KeyError):
+            if 'server.auth.auth' in sys.modules:
+                importlib.reload(sys.modules['server.auth.auth'])
+            else:
+                import server.auth.auth as should_throw
+                print(should_throw)
+    finally:
+        # Fix everything
+        environ[token_name] = token
+        import server.auth.auth as fix
+        print(fix)
+        importlib.reload(fix)
 
 
 def test_bad_scheme(r, auth):

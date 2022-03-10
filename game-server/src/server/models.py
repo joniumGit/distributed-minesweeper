@@ -1,7 +1,11 @@
+import os
 from typing import List, Optional, Iterable
 
 from minesweeper.game import Minesweeper, Status
-from pydantic import BaseModel, conint, Field, root_validator
+from pydantic import BaseModel, conint, Field, root_validator, validator
+
+MAX_WIDTH = int(os.getenv('DS_MAX_WIDTH', '256'))
+MAX_HEIGHT = int(os.getenv('DS_MAX_HEIGHT', '256'))
 
 
 class Square(BaseModel):
@@ -19,9 +23,19 @@ class Squares(BaseModel):
 
 
 class Start(BaseModel):
-    width: conint(gt=0)
-    height: conint(gt=0)
-    mines: conint(gt=0)
+    width: conint(gt=0, lt=MAX_WIDTH)
+    height: conint(gt=0, lt=MAX_HEIGHT)
+    mines: conint(gt=0) = Field(..., description='Maximum is calculated via (width - 1)(height - 1)')
+
+    @validator("width")
+    def validate_width(cls, value):
+        assert value < MAX_WIDTH, "Field too wide"
+        return value
+
+    @validator("height")
+    def validate_height(cls, value):
+        assert value < MAX_HEIGHT, "Field too tall"
+        return value
 
     @root_validator(pre=False, skip_on_failure=True)
     def validate_combination(cls, value):
@@ -60,7 +74,7 @@ class Move(BaseModel):
             class_validators=None
         )
         cls.__fields__['y'] = ModelField(
-            name='x',
+            name='y',
             type_=conint(ge=0, lt=game.height),
             model_config=BaseConfig,
             class_validators=None

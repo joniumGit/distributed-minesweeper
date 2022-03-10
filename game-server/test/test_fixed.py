@@ -6,6 +6,7 @@ def initialized(state):
     print('Fixed Setup Invoked')
     from minesweeper.game import Minesweeper, Status
     from minesweeper.logic import Field, MINE, FLAG, TAIL, OPEN
+    from server.models import Move
 
     field = Field(5, 6, 2)
     game = Minesweeper(5, 6, 2)
@@ -44,13 +45,14 @@ def initialized(state):
         print()
     state._game = game
     state.initialized = True
+    Move.adapt(game)  # Very important
 
     yield
 
     for i in range(0, 6):
         for j in range(0, 5):
             v = field[j, i]
-            print(f"{bool(v & OPEN):d}" if v & MINE == 0 else 'x', end='')
+            print(f'{bool(v & OPEN):d}' if v & MINE == 0 else 'x', end='')
         print()
 
 
@@ -159,3 +161,18 @@ def test_win(client, state):
     assert r.json()['status'] == 'win'
     assert len(r.json()['items']) == 3
     assert len(client.get('/reload').json()['items']) == 30
+
+
+def test_location(client):
+    """If model adaption is wrong this might fail
+    """
+    from headers import LOCATION
+    client.post('/open?x=3&y=0')
+
+    r = client.post('/open?x=3&y=0')
+    assert r.status_code == 304
+    assert r.headers[LOCATION].endswith('x=3&y=0')
+
+    r = client.post('/open?x=0&y=3')
+    assert r.status_code == 304
+    assert r.headers[LOCATION].endswith('x=0&y=3')
