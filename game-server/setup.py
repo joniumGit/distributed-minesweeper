@@ -7,7 +7,7 @@ setup(
     author='joniumGit',
     author_email='52005121+joniumGit@users.noreply.github.com',
     url='https://github.com/joniumGit/distributed-minesweeper',
-    packages=['server'],
+    packages=['server', 'server.auth'],
     package_dir={'': 'src/'},
     install_requires=[
         'fastapi >= 0.75.0'

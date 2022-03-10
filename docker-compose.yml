@@ -1,0 +1,14 @@
+version: "3"
+services:
+  game:
+    build:
+      dockerfile: game.Dockerfile
+      context: .
+    image: ds-gameserver:latest
+    environment:
+      DS_TESTING: "true"
+      DS_MAX_WIDTH: 100
+      DS_MAX_HEIGH: 100
+      DS_BROKER_TOKEN: "test"
+    ports:
+      - "127.0.0.1:8080:8080"
