@@ -30,7 +30,7 @@ app = FastAPI(
         }
     ],
     redoc_url=None,
-    docs_url='/' if TESTING else None
+    docs_url='/docs' if TESTING else None
 )
 api = APIRouter(tags=['API'])
 
@@ -113,7 +113,7 @@ async def stop():
             c.stop()
 
 
-@api.post('/')
+@api.post('/start')
 def start(r: Request):
     from headers import AUTHORIZATION, LOCATION
     if count_containers() >= MAX_CONTAINERS:
