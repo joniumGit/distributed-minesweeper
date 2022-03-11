@@ -18,6 +18,7 @@ MAX_LIFETIME = int(os.getenv('DS_LIFETIME', '10'))
 PREFIX = os.getenv('DS_PREFIX', 'ds-node')
 TESTING = os.getenv('DS_TESTING', 'false').lower() == 'true'
 NETWORK: str
+PROJECT: str
 
 composer = docker.from_env()
 app = FastAPI(
@@ -78,6 +79,18 @@ async def run_reaper():
         await asyncio.sleep(60)
 
 
+def get_labels(name):
+    return {
+        'ds.start-time': str(int(time.time())),
+        'traefik.enable': 'true',
+        f'traefik.http.routers.{name}.rule': f'PathPrefix(`/{name}/`)',
+        f'traefik.http.services.{name}.loadbalancer.server.port': '8080',
+        f'traefik.http.middlewares.{name}-stripper.stripprefix.prefixes': f'/{name}',
+        f'traefik.http.routers.{name}.middlewares': f'{name}-stripper@docker',
+        'com.docker.compose.project': PROJECT
+    }
+
+
 def random_string():
     from secrets import choice
     from string import ascii_lowercase
@@ -106,12 +119,13 @@ def count_containers() -> int:
 
 @app.on_event('startup')
 async def start():
-    global NETWORK
+    global NETWORK, PROJECT
 
     import socket
     self = composer.containers.get(socket.gethostname())
     net = next(iter(self.attrs['NetworkSettings']['Networks'].keys()))
     NETWORK = net
+    PROJECT = self.attrs['Config']['Labels']['com.docker.compose.project']
 
     app.state.checker = asyncio.get_running_loop().create_task(run_reaper(), name='DS Reaper')
 
@@ -143,14 +157,7 @@ def start(r: Request):
         mem_limit='40M',
         memswap_limit='50M',
         nano_cpus=int(2E8),
-        labels={
-            'ds.start-time': str(int(time.time())),
-            'traefik.enable': 'true',
-            f'traefik.http.routers.{name}.rule': f'PathPrefix(`/{name}/`)',
-            f'traefik.http.services.{name}.loadbalancer.server.port': '8080',
-            f'traefik.http.middlewares.{name}-stripper.stripprefix.prefixes': f'/{name}',
-            f'traefik.http.routers.{name}.middlewares': f'{name}-stripper@docker'
-        },
+        labels=get_labels(name),
     )
     return Response(status_code=201, headers={
         AUTHORIZATION: f'Bearer {token}',

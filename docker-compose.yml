@@ -30,7 +30,7 @@ services:
       DS_MAX_WIDTH: 100
       DS_MAX_HEIGH: 100
       DS_LIFETIME: 600
-      DS_MAX_NODES: 100
+      DS_MAX_NODES: 10
       DS_TESTING: 'true'
     restart: 'unless-stopped'
     volumes:
