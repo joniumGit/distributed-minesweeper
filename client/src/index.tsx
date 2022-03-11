@@ -1,12 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './App';
+import App from './pages/homepage';
 import reportWebVitals from './reportWebVitals';
+import Load from './pages/load';
+import FieldForm from './pages/homepage';
+import MyRoutes from './routes';
+import Game from './pages/game';
+import Square from './pages/game';
+
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <MyRoutes />
   </React.StrictMode>,
   document.getElementById('root')
 );
