@@ -31,7 +31,7 @@ services:
       DS_MAX_HEIGH: 100
       DS_LIFETIME: 600
       DS_MAX_NODES: 4
-      DS_TESTING: true
+      DS_TESTING: 'true'
     restart: 'unless-stopped'
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
