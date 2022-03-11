@@ -35,6 +35,17 @@ app = FastAPI(
 api = APIRouter(tags=['API'])
 
 if TESTING:
+    from fastapi.middleware.cors import CORSMiddleware
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods={"GET", "POST", "PATCH", "PUT", "DELETE"},
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+
+
     def get_env(token, name):
         return {
             'DS_BROKER_TOKEN': token,
