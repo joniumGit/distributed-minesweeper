@@ -23,7 +23,8 @@ app = FastAPI(
     redoc_url=None,
     docs_url='/docs' if TESTING else None,
     description="Simple Minesweeper server",
-    title="Distributed Minesweeper"
+    title="Distributed Minesweeper",
+    root_path=os.getenv('DS_ROOT_PATH', '')
 )
 game_state = State()
 auth = AuthScheme()

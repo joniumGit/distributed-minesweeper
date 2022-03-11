@@ -1,6 +1,6 @@
 version: "3"
 services:
-  game:
+  sample-game:
     build:
       dockerfile: game.Dockerfile
       context: .
@@ -11,4 +11,47 @@ services:
       DS_MAX_HEIGH: 100
       DS_BROKER_TOKEN: "test"
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8000:8080"
+    restart: "unless-stopped"
+    healthcheck:
+      test: "curl --silent -i -X GET -H 'Authorization: Bearer test' http://localhost:8080 | grep -q 410 && kill -s 15 1 && (sleep 10; kill -s 9 1) || exit 0"
+      interval: '5s'
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: "40M"
+  broker:
+    build:
+      dockerfile: broker.Dockerfile
+      context: .
+    image: ds-broker:latest
+    environment:
+      DS_MAX_WIDTH: 100
+      DS_MAX_HEIGH: 100
+      DS_LIFETIME: 600
+      DS_MAX_NODES: 4
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.broker.rule=PathPrefix(`/`)"
+      - "traefik.http.services.broker.loadbalancer.server.port=8080"
+    networks:
+      - ds-net
+  traefik:
+    image: traefik:latest
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - ds-net
+networks:
+  ds-net:
