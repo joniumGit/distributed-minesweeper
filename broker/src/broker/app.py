@@ -36,17 +36,6 @@ app = FastAPI(
 api = APIRouter(tags=['API'])
 
 if TESTING:
-    from fastapi.middleware.cors import CORSMiddleware
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods={"GET", "POST", "PATCH", "PUT", "DELETE"},
-        allow_headers=["*"],
-        expose_headers=["*"],
-    )
-
-
     def get_env(token, name):
         return {
             'DS_BROKER_TOKEN': token,
@@ -85,8 +74,16 @@ def get_labels(name):
         'traefik.enable': 'true',
         f'traefik.http.routers.{name}.rule': f'PathPrefix(`/{name}/`)',
         f'traefik.http.services.{name}.loadbalancer.server.port': '8080',
+
         f'traefik.http.middlewares.{name}-stripper.stripprefix.prefixes': f'/{name}',
-        f'traefik.http.routers.{name}.middlewares': f'{name}-stripper@docker',
+
+        f'traefik.http.middlewares.{name}-head.headers.accesscontrolalloworiginlist': '*',
+        f'traefik.http.middlewares.{name}-head.headers.accesscontrolallowmethods': 'GET,POST,DELETE',
+        f'traefik.http.middlewares.{name}-head.headers.accesscontrolexposeheaders': '*',
+        f'traefik.http.middlewares.{name}-head.headers.accesscontrolallowheaders': '*',
+
+        f'traefik.http.routers.{name}.middlewares': f'{name}-stripper@docker,{name}-head@docker',
+
         'com.docker.compose.project': PROJECT,
     }
 

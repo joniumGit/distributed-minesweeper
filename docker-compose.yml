@@ -40,6 +40,11 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.broker.rule=PathPrefix(`/`)"
       - "traefik.http.services.broker.loadbalancer.server.port=8080"
+      - "traefik.http.middlewares.broker-head.headers.accesscontrolalloworiginlist=*"
+      - "traefik.http.middlewares.broker-head.headers.accesscontrolallowmethods=GET,POST,DELETE"
+      - "traefik.http.middlewares.broker-head.headers.accesscontrolexposeheaders=*"
+      - "traefik.http.middlewares.broker-head.headers.accesscontrolallowheaders=*"
+      - "traefik.http.routers.broker.middlewares=broker-head@docker"
     networks:
       - ds-net
   traefik:
