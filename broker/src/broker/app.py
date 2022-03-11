@@ -17,8 +17,8 @@ MAX_HEIGHT = int(os.getenv('DS_MAX_HEIGHT', '100'))
 MAX_LIFETIME = int(os.getenv('DS_LIFETIME', '10'))
 PREFIX = os.getenv('DS_PREFIX', 'ds-node')
 TESTING = os.getenv('DS_TESTING', 'false').lower() == 'true'
+PROJECT = os.getenv('DS_PROJECT', 'distributed-systems-nodes')
 NETWORK: str
-PROJECT: str
 
 composer = docker.from_env()
 app = FastAPI(
@@ -87,7 +87,7 @@ def get_labels(name):
         f'traefik.http.services.{name}.loadbalancer.server.port': '8080',
         f'traefik.http.middlewares.{name}-stripper.stripprefix.prefixes': f'/{name}',
         f'traefik.http.routers.{name}.middlewares': f'{name}-stripper@docker',
-        'com.docker.compose.project': PROJECT
+        'com.docker.compose.project': PROJECT,
     }
 
 
@@ -125,7 +125,6 @@ async def start():
     self = composer.containers.get(socket.gethostname())
     net = next(iter(self.attrs['NetworkSettings']['Networks'].keys()))
     NETWORK = net
-    PROJECT = self.attrs['Config']['Labels']['com.docker.compose.project']
 
     app.state.checker = asyncio.get_running_loop().create_task(run_reaper(), name='DS Reaper')
 
