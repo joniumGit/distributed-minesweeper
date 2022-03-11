@@ -1,0 +1,5 @@
+fastapi>=0.75.0
+httpheaders
+docker
+httpx
+uvicorn

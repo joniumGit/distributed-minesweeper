@@ -16,6 +16,7 @@ MAX_WIDTH = int(os.getenv('DS_MAX_WIDTH', '100'))
 MAX_HEIGHT = int(os.getenv('DS_MAX_HEIGHT', '100'))
 MAX_LIFETIME = int(os.getenv('DS_LIFETIME', '10'))
 PREFIX = os.getenv('DS_PREFIX', 'ds-node')
+TESTING = os.getenv('DS_TESTING', 'false').lower() == 'true'
 NETWORK: str
 
 composer = docker.from_env()
@@ -28,8 +29,28 @@ app = FastAPI(
             'description': 'Available API operations'
         }
     ],
+    redoc_url=None,
+    docs_url='/' if TESTING else None
 )
 api = APIRouter(tags=['API'])
+
+if TESTING:
+    def get_env(token, name):
+        return {
+            'DS_BROKER_TOKEN': token,
+            'DS_MAX_WIDTH': MAX_WIDTH,
+            'DS_MAX_HEIGHT': MAX_HEIGHT,
+            'DS_ROOT_PATH': f'/{name}/',
+            'DS_TESTING': 'true',
+        }
+else:
+    def get_env(token, name):
+        return {
+            'DS_BROKER_TOKEN': token,
+            'DS_MAX_WIDTH': MAX_WIDTH,
+            'DS_MAX_HEIGHT': MAX_HEIGHT,
+            'DS_ROOT_PATH': f'/{name}/',
+        }
 
 
 async def run_reaper():
@@ -90,10 +111,9 @@ async def stop():
     for c in net.containers:
         if c.name.startswith(PREFIX):
             c.stop()
-    net.remove()
 
 
-@api.post('/start')
+@api.post('/')
 def start(r: Request):
     from headers import AUTHORIZATION, LOCATION
     if count_containers() >= MAX_CONTAINERS:
@@ -106,13 +126,7 @@ def start(r: Request):
         image='ds-gameserver:latest',
         detach=True,
         network=NETWORK,
-        environment={
-            'DS_BROKER_TOKEN': token,
-            'DS_MAX_WIDTH': MAX_WIDTH,
-            'DS_MAX_HEIGHT': MAX_HEIGHT,
-            'DS_ROOT_PATH': f'/{name}/',
-            'DS_TESTING': 'true',
-        },
+        environment=get_env(token, name),
         tty=False,
         remove=True,
         mem_limit='40M',
@@ -128,8 +142,8 @@ def start(r: Request):
         },
     )
     return Response(status_code=201, headers={
-        AUTHORIZATION: token,
-        LOCATION: f'{r.base_url}{name}/'
+        AUTHORIZATION: f'Bearer {token}',
+        LOCATION: f'{r.base_url}{name}/start',
     })
 
 
