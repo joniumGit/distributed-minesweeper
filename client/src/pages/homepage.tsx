@@ -35,7 +35,9 @@ class FieldForm extends React.Component<any, any, any>{
       height: this.state['height'],
       mines: this.state['mines']
     }));
-    window.location.href = '/game';
+
+    window.location.href = '/loading'
+
   }
   render() {
     return (
