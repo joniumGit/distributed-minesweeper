@@ -1,6 +1,21 @@
 import React from 'react';
-import '../App.css';
 import {useNavigate} from "react-router-dom";
+
+function NumberInput(props) {
+    return (
+        <label style={{textAlign: "left", display: "block"}}>
+            {props.text}
+            <input
+                type="number"
+                min={props.min}
+                max={props.max}
+                name="width"
+                defaultValue={props.value}
+                onChange={props.onChange}
+            />
+        </label>
+    )
+}
 
 function HomePage(props) {
     const nav = useNavigate()
@@ -17,42 +32,37 @@ function HomePage(props) {
                 Welcome to Distributed Minesweeper!
             </h1>
             <h2>
-                Please customize the game as instructed below.
+                Input Game Settings:
             </h2>
-            <form onSubmit={onSubmit}>
-                <label>
-                    Enter the width:
-                    <input
-                        type="number"
-                        min='4'
-                        name="width"
+            <div>
+                <form onSubmit={onSubmit}>
+                    <NumberInput
+                        text={'Width:'}
+                        min={4}
+                        max={32}
                         value={state.width}
-                        onChange={state.setters.width}/>
-                </label>
-                <br/>
-                <label>
-                    Enter the height:
-                    <input
-                        type="number"
-                        min="4"
-                        name="height"
+                        onChange={state.setters.width}
+                    />
+                    <NumberInput
+                        text={'Height:'}
+                        min={4}
+                        max={32}
                         value={state.height}
-                        onChange={state.setters.height}/>
-                </label>
-                <br/>
-                <label>
-                    Enter the mines amount:
-                    <input
-                        type="number"
-                        min="1"
-                        name="mines"
+                        onChange={state.setters.height}
+                    />
+                    <NumberInput
+                        text={'Mines:'}
+                        min={1}
+                        max={961}
                         value={state.mines}
-                        onChange={state.setters.mines}/>
-                </label>
-                <br/>
-                <input type="submit"
-                       value="Start playing!"/>
-            </form>
+                        onChange={state.setters.mines}
+                    />
+                    <label>
+                        {''}
+                        <input type="submit" value="Start!"/>
+                    </label>
+                </form>
+            </div>
         </div>
     )
 }

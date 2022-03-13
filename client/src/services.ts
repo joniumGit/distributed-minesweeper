@@ -20,6 +20,15 @@ async function sleep(millis: number) {
     await new Promise(r => setTimeout(r, millis))
 }
 
+async function getStatus(url: string, auth: string) {
+    let r = await axios.get(url, {
+        headers: {
+            authorization: auth
+        }
+    })
+    return r.status
+}
+
 function getAPI(settings: Settings, setters: any): API {
     return {
         ...settings,
@@ -55,14 +64,8 @@ function getAPI(settings: Settings, setters: any): API {
                 window.location.href = '/'
                 return;
             }
-            let r = await axios.get(this.nodeUrl, {
-                headers: {
-                    authorization: this.auth
-                }
-            })
-            if (r.status !== 200) {
+            while (await getStatus(this.nodeUrl, this.auth) !== 200) {
                 await sleep(500)
-                await waitInit()
             }
         }
     }

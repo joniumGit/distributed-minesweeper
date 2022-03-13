@@ -3,7 +3,7 @@ function Game(props) {
     const status = `There are ${state.mines} mines in the field`;
 
     const makeSquare = (value) => (
-        <button className="square" style={{width: 50, height: 50}}>
+        <button className="square" style={{minWidth: 30, minHeight: 30, maxWidth: 60, maxHeight: 60}}>
             {value === -1 ? "" : value}
         </button>
     )
@@ -15,9 +15,9 @@ function Game(props) {
     )
 
     const makeBoard = (columnData) => (
-        <div style={{left: "50%", top: "50%", transform: "translate(-50%,-50%)", position: "absolute"}}>
+        <div>
             <div className="status" style={{textAlign: "center"}}>{status}</div>
-            {columnData}
+            <div>{columnData}</div>
         </div>
     )
 

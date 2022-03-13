@@ -6,6 +6,13 @@ const HomePage = lazy(() => import('./pages/homepage.jsx'));
 const Load = lazy(() => import('./pages/load.jsx'));
 const Game = lazy(() => import('./pages/game.js'));
 
+function CenterDiv(props) {
+    return (
+        <div style={{left: "50%", top: "50%", transform: "translate(-50%,-50%)", position: "absolute"}}>
+            {props.children}
+        </div>
+    )
+}
 
 export const AppRoutes = () => {
     const [width, setWidth] = useState(8)
@@ -20,16 +27,17 @@ export const AppRoutes = () => {
         height: (e) => setHeight(parseInt(e.target.value)),
         mines: (e) => setMines(parseInt(e.target.value))
     })
-    console.log(settings)
     return (
-        <Router>
-            <Suspense fallback={<div>Loading...</div>}>
-                <Routes>
-                    <Route path="/" element={<HomePage settings={settings}/>}/>
-                    <Route path="/loading" element={<Load settings={settings}/>}/>
-                    <Route path='/game' element={<Game settings={settings}/>}/>
-                </Routes>
-            </Suspense>
-        </Router>
+        <CenterDiv>
+            <Router>
+                <Suspense fallback={<div>Loading...</div>}>
+                    <Routes>
+                        <Route path="/" element={<HomePage settings={settings}/>}/>
+                        <Route path="/loading" element={<Load settings={settings}/>}/>
+                        <Route path='/game' element={<Game settings={settings}/>}/>
+                    </Routes>
+                </Suspense>
+            </Router>
+        </CenterDiv>
     )
 }
