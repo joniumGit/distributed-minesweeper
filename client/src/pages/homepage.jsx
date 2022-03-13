@@ -1,26 +1,16 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 import '../App.css';
 import {useNavigate} from "react-router-dom";
-import {GameSettings} from "../services";
 
-function HomePage() {
+function HomePage(props) {
     const nav = useNavigate()
-    const state = GameSettings
-    useEffect(() => {
-        console.log('update')
-    }, [state])
-    const onChange = (event) => {
-        const target = event.target;
-        const name = target.name;
-        state[name] = parseInt(target.value)
-        console.log(state)
-        console.log(name)
-    }
+    const state = props.settings
+
     const onSubmit = (event) => {
         event.preventDefault()
-        // TODO: Request node and start game
         nav('/loading')
     }
+
     return (
         <div>
             <h1>
@@ -37,7 +27,7 @@ function HomePage() {
                         min='4'
                         name="width"
                         value={state.width}
-                        onChange={onChange}/>
+                        onChange={state.setters.width}/>
                 </label>
                 <br/>
                 <label>
@@ -47,7 +37,7 @@ function HomePage() {
                         min="4"
                         name="height"
                         value={state.height}
-                        onChange={onChange}/>
+                        onChange={state.setters.height}/>
                 </label>
                 <br/>
                 <label>
@@ -57,7 +47,7 @@ function HomePage() {
                         min="1"
                         name="mines"
                         value={state.mines}
-                        onChange={onChange}/>
+                        onChange={state.setters.mines}/>
                 </label>
                 <br/>
                 <input type="submit"

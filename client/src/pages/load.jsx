@@ -1,13 +1,19 @@
 import '../App.css';
-import React from 'react';
-import {GameSettings, getNode, startGame, waitGame} from '../services'
+import React, {useEffect} from 'react';
 import {useNavigate} from "react-router-dom";
 
-function Load() {
-    const state = GameSettings
+function Load(props) {
+    const state = props.settings
     const nav = useNavigate()
 
-    getNode(state, s => startGame(s, t => waitGame(t, k => nav('/game'))))
+    useEffect(() => {
+        (async () => {
+            await state.reserveNode()
+            await state.startGame()
+            await state.waitInit()
+            nav('/game')
+        })();
+    })
 
     return (
         <div>
@@ -18,11 +24,11 @@ function Load() {
                 Your customized minefield:
             </h2>
             <h3>
-                Width: {state['width']}
+                Width: {state.width}
                 <br/>
-                Height: {state['height']}
+                Height: {state.height}
                 <br/>
-                Mines: {state['mines']}
+                Mines: {state.mines}
             </h3>
         </div>
     );
