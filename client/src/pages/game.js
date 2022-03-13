@@ -1,72 +1,54 @@
-import React from "react";
-import FieldForm from "./homepage";
+import {GameSettings} from "../services";
 
-const state = JSON.parse(window.localStorage.getItem('mine-settings'))
-console.log(state)
 
-class Square extends React.Component {
-    render() {
-      return (
-        <button className="square"
-        >
-          {this.props.value}
+function Square(props) {
+    return (
+        <button className="square">
+            {props.value}
         </button>
-      );
-    }
-  }
-  
-  class Board extends React.Component {
-    renderSquare(i) {
-      return <Square value={i} />;
-    }
+    );
+}
 
-    renderRow(fieldRow){
-        return (
+
+function Board() {
+    const state = GameSettings
+    const status = `There are ${state["mines"]} mines in the field`;
+    const square = i => <Square value={i}/>
+    const row = (rowData) => (
         <div className="board-row">
-            {fieldRow}
-        </div>)
-    }
-
-    render() {
-      const status = `There are ${state["mines"]} mines in the field`;
-
-      let field = []
-      
-        for (let i = 0; i < state["height"]; i++) {
-            let fieldRow = [];
-            for (var j = 0; j < state["width"]; j++) {
-                fieldRow.push(this.renderSquare(0))
-            }
-            field.push(this.renderRow(fieldRow))
+            {rowData}
+        </div>
+    )
+    let field = []
+    for (let i = 0; i < state.height; i++) {
+        let fieldRow = [];
+        for (var j = 0; j < state.width; j++) {
+            fieldRow.push(square(" "))
         }
-      
-      return (
+        field.push(row(fieldRow))
+    }
+    return (
         <div>
-          <div className="status">{status}</div>
-          <div>
-              {field}
-          </div>
-          
-        
+            <div className="status">{status}</div>
+            <div>
+                {field}
+            </div>
         </div>
-      );
-    }
-  }
-  
-  class Game extends React.Component {
-    render() {
-      return (
+    );
+}
+
+function Game() {
+    return (
         <div className="game">
-          <div className="game-board">
-            <Board />
-          </div>
-          <div className="game-info">
-            <div>{/* status */}</div>
-            <ol>{/* TODO */}</ol>
-          </div>
+            <div className="game-board">
+                <Board/>
+            </div>
+            <div className="game-info">
+                <div>{/* status */}</div>
+                <ol>{/* TODO */}</ol>
+            </div>
         </div>
-      );
-    }
-  }
+    );
+}
 
 export default Game;

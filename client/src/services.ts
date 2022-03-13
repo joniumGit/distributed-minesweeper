@@ -6,13 +6,21 @@ interface Settings {
     auth: string
 }
 
-function getNode(settings: Settings, callback:any){
+export const GameSettings: Settings = {
+    width: 4,
+    height: 4,
+    mines: 2,
+    nodeUrl: "",
+    auth: ""
+}
+
+function getNode(settings: Settings, callback: any) {
     let r = new window.XMLHttpRequest()
-    r.onloadend = function() {
+    r.onloadend = function () {
         settings.nodeUrl = this.getResponseHeader("Location")!
         settings.auth = this.getResponseHeader('Authorization')!;
-        (async ()=>{
-            await (new Promise(r=>setTimeout(r, 1000)));
+        (async () => {
+            await (new Promise(r => setTimeout(r, 1000)));
             callback(settings)
         })()
     }
@@ -20,27 +28,27 @@ function getNode(settings: Settings, callback:any){
     r.send()
 }
 
-function startGame(settings: Settings, callback:any){
+function startGame(settings: Settings, callback: any) {
     let r = new window.XMLHttpRequest()
-    r.onloadend = function() {
+    r.onloadend = function () {
         settings.nodeUrl = this.getResponseHeader("Location")!
         callback(settings)
     }
     const query = `?width=${settings.width}&height=${settings.height}&mines=${settings.mines}`;
-    r.open('POST', settings.nodeUrl+query)
+    r.open('POST', settings.nodeUrl + query)
     r.setRequestHeader('Authorization', settings.auth)
     r.send()
 }
 
-function waitGame(settings: Settings, callback:any){
+function waitGame(settings: Settings, callback: any) {
     let r = new window.XMLHttpRequest()
-    r.onloadend = function() {
-        if (this.status !== 200){
-            (async ()=>{
-                await (new Promise(r=>setTimeout(r, 1000)));
+    r.onloadend = function () {
+        if (this.status !== 200) {
+            (async () => {
+                await (new Promise(r => setTimeout(r, 1000)));
                 waitGame(settings, callback)
             })()
-        }else{
+        } else {
             callback(settings)
         }
     }
