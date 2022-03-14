@@ -38,7 +38,7 @@ services:
       - "./broker/src/broker:/root/broker:ro"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.broker.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.broker.rule=Path(`/`) || Path(`/docs`) || Path(`/start`)"
       - "traefik.http.services.broker.loadbalancer.server.port=8080"
       - "traefik.http.middlewares.broker-head.headers.accesscontrolalloworiginlist=*"
       - "traefik.http.middlewares.broker-head.headers.accesscontrolallowmethods=GET,POST,DELETE"
