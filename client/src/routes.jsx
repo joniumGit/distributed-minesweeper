@@ -15,18 +15,18 @@ function CenterDiv(props) {
 }
 
 export const AppRoutes = () => {
-    const [width, setWidth] = useState(8)
-    const [height, setHeight] = useState(8)
-    const [mines, setMines] = useState(10)
-    const settings = getAPI({
-        width: width,
-        height: height,
-        mines: mines
-    }, {
-        width: (e) => setWidth(parseInt(e.target.value)),
-        height: (e) => setHeight(parseInt(e.target.value)),
-        mines: (e) => setMines(parseInt(e.target.value))
+    const [state, setState] = useState({
+        width: 8,
+        height: 8,
+        mines: 10
     })
+    const settings = getAPI(state, {
+        width: (e) => setState({...state, width: parseInt(e.target.value)}),
+        height: (e) => setState({...state, height: parseInt(e.target.value)}),
+        mines: (e) => setState({...state, mines: parseInt(e.target.value)}),
+        update: (o) => setState({...o})
+    })
+
     return (
         <CenterDiv>
             <Router>

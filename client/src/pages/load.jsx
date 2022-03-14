@@ -1,19 +1,13 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useNavigate} from "react-router-dom";
+import { start } from '../services';
 
 function Load(props) {
     const state = props.settings
     const nav = useNavigate()
 
-    useEffect(() => {
-        (async () => {
-            await state.reserveNode()
-            await state.startGame()
-            await state.waitInit()
-            nav('/game')
-        })();
-    })
-
+    useEffect(() => start(state, nav))
+        
     return (
         <div>
             <h1>
