@@ -51,3 +51,54 @@ run_pytest.sh
     - DS_MAX_WIDTH=400
     - DS_MAX_HEIGHT=400
 ```
+
+#### Broker
+
+Found under [broker](./broker).
+
+This also has multiple parts in the root of the repo. This is the main service for this project responsible for
+allocating game nodes and deleting them on timeout. The default settings are tuned very conservatively.
+
+The broker and the main compose file use Traefik and Docker API.
+__This exposes the raw Docker Socket which is unsafe__
+
+Some security considerations should be taken if this is deployed.
+
+See:
+
+- [compose file](./docker-compose.yml)
+- [broker container](./broker.Dockerfile)
+- [game node container](./game.Dockerfile)
+
+```
+Run this:
+$ sh run_broker.sh
+
+Runs the main compose file.
+Default lifetime is set to 10 minutes.
+Auto cleanup on game end is not yet implemented.
+
+Check the code + compose for environment variables.
+```
+
+#### Javascript Client
+
+Found under [client](./client).
+
+Install deps `npm ci` and run `npm start`
+
+#### Python CLI Client
+
+Found under [python-client](./python-client).
+
+```
+Requires:
+ - requests
+ - httpheaders
+ - python >= 3.8
+
+How to Run (Requires Running Broker):
+$ cd python-client
+$ pip install -r requirements.txt
+$ python client.py
+```
