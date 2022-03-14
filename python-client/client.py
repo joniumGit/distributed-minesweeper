@@ -1,12 +1,13 @@
 import time
+from typing import List, Optional, Tuple, Union
 
 import headers
 import requests
 
-field = [[]]
+field: List[List[Optional[Union[int, str]]]] = [[]]
 
 
-def get_node():
+def get_node() -> Tuple[str, str]:
     r = requests.post('http://localhost/start')
     assert r.status_code == 201, r
     print('Got Node')
@@ -15,7 +16,7 @@ def get_node():
     return r.headers[headers.LOCATION], r.headers[headers.AUTHORIZATION]
 
 
-def init_field(node_start) -> str:
+def init_field(node_start: str) -> str:
     global field
     while True:
         try:
@@ -37,7 +38,7 @@ def print_field():
         print(f'{idx}|' + ' '.join(' ' if v is None else f'{v}' for v in row))
 
 
-def get_input():
+def get_input() -> Tuple[bool, int, int]:
     while True:
         input_ = input('Give (f,)x,y: ')
         parts = input_.split(',')
@@ -53,12 +54,12 @@ def get_input():
                 y = int(y)
                 f = False
             break
-        except:
+        except ValueError:
             print('Invalid Input')
     return f, x, y
 
 
-def handle_flag(x, y):
+def handle_flag(x: int, y: int):
     if field[y][x] == 'f':
         client.delete(f'{node}flag', params=dict(x=x, y=y))
         field[y][x] = None
@@ -67,7 +68,7 @@ def handle_flag(x, y):
         field[y][x] = 'f'
 
 
-def handle_open(x, y) -> bool:
+def handle_open(x: int, y: int) -> bool:
     r = client.post(f'{node}open', params=dict(x=x, y=y))
     if r.status_code == 200:
         for s in r.json()['items']:
