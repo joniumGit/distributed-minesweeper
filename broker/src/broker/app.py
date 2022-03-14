@@ -152,7 +152,7 @@ def start(r: Request):
         remove=True,
         mem_limit='40M',
         memswap_limit='50M',
-        nano_cpus=int(2E8),
+        nano_cpus=int(35E7),
         labels=get_labels(name),
     )
     return Response(status_code=201, headers={
